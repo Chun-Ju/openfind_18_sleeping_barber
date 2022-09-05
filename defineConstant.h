@@ -1,4 +1,4 @@
-#ifdef   _DEFINECONSTANT_H_
+#ifndef   _DEFINECONSTANT_H_
 #define  _DEFINECONSTANT_H_
 
 #define  BARBER_COUNT   3

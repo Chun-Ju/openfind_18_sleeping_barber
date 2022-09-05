@@ -5,6 +5,7 @@
 
 #include "defineConstant.h"
 
+sem_t *SEM_closeAll;
 sem_t *SEM_chair;
 sem_t *SEM_sleepingBarber;
 sem_t *SEM_customers;
@@ -24,7 +25,7 @@ main(){
       return ERR_SEM_OPEN;
    }
 
-   sem_t *SEM_closeAll = sem_open("SEM_closeAll", O_CREAT, 0664, 0);
+   SEM_closeAll = sem_open("SEM_closeAll", O_CREAT, 0664, 0);
    if (!SEM_closeAll) {
       perror("Error(sem_open):");
       result = ERR_SEM_OPEN;

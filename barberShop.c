@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <semaphore.h>
 #include <fcntl.h>
+#include <pthread.h>
 
 #include "defineConstant.h"
 
@@ -10,6 +12,65 @@ sem_t *SEM_chair;
 sem_t *SEM_sleepingBarber;
 sem_t *SEM_customers;
 sem_t *SEM_order;
+
+int freeChairCounts= CHAIR_COUNT;
+
+void  *
+barber(void *Bid){
+   /* ------------------------------------   *
+    * barber opens its own door by Felicia   *
+    * ------------------------------------   */
+   int   bid = *(int*) Bid;
+   printf("barber%d opens the door\n", bid);
+   sem_post(SEM_order);
+
+   /* ----------------------------------------------------------------------------------- *
+    * barber waits arrivers come to serve the sustomers or close its own store by Felicia *
+    * ----------------------------------------------------------------------------------- */
+   while(1){
+      sem_wait(SEM_customers);
+      int   ret = sem_trywait(SEM_closeAll);
+      if(ret == 0){
+         break;
+      }
+      sem_wait(SEM_chair);
+      // TODO deQ to get the customer's Info
+
+      // release one chair in waiting room
+      freeChairCounts += 1;
+      printf("barber%d is serving customer\n", bid);
+      sem_post(SEM_chair);
+      // barber is cutting the customer's hair
+      sleep(4);
+      printf("customer leaves due to barber%d has finished serving customer.\n", bid);
+      // telling the customers who is waiting on the bench that barber's idling now.
+      sem_post(SEM_sleepingBarber);
+   }
+   printf("barber%d sleeps\n", bid);
+   pthread_exit(NULL);
+}
+
+void *
+customer(void  *Cid){
+   int cid = *(int*) Cid;
+   sem_wait(SEM_chair);
+   if (freeChairCounts <= 0) {// no seats
+      printf("customer%d leaves due to no seats in waiting room\n", cid);
+      sem_post(SEM_chair);
+      sem_post(SEM_order);
+   } else {
+      // TODO insert into waitinig queue
+
+      freeChairCounts -= 1;
+      printf("customer%d waiting in the bench\n", cid);
+      sem_post(SEM_customers);
+      sem_post(SEM_chair);
+      sem_post(SEM_order);
+      sem_wait(SEM_sleepingBarber);
+   }
+
+   pthread_exit(NULL);
+}
 
 int
 main(){
@@ -59,6 +120,37 @@ main(){
       perror("Error(sem_open):");
       result = ERR_SEM_OPEN;
       goto error_handling_b4;
+   }
+
+   /* -------------------------------------  *
+    * create the barber (Thread) by Felicia  *
+    * -------------------------------------  */
+   int         barberId = 0;
+   pthread_t   barberThread[BARBER_COUNT];
+   // <BARBER_COUNT> barber start working
+   for(int i = 0; i < BARBER_COUNT; i++){
+      sem_wait(SEM_order);
+      ++barberId;
+      pthread_create(&barberThread[i], NULL, barber, &barberId);
+   }
+
+   /* -------------------------------------  *
+    * create the barber (Thread) by Felicia  *
+    * -------------------------------------  */
+   int         customerId = 0;
+   while(1){
+      sem_wait(SEM_arrive);
+      int ret = sem_trywait(SEM_closeAll);
+      if(ret == 0){
+         // TODO pthread_cancel the customers wait in the waiting room
+
+         break;
+      }
+      sem_wait(SEM_order);
+      ++customerId;
+      printf("customer%d arrives the store\n", customerId);
+      pthread_t customerThread;
+      pthread_create(&customerThread, NULL, customer, &customerId);
    }
 
    /* ------------------------------------------------------   *

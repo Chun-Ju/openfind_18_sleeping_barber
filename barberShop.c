@@ -167,6 +167,16 @@ main(){
       pthread_create(&customerThread, NULL, customer, &customerId);
    }
 
+   /* ----------------------------------------------------------------- *
+    * dispatch the people to tell barber it is time to sleep by Felicia *
+    * ----------------------------------------------------------------- */
+   for(int i = 0; i < BARBER_COUNT; i++){
+      sem_post(SEM_customers);
+   }
+   for(int i = 0; i < BARBER_COUNT; i++){
+      pthread_join(barberThread[i], NULL);
+   }
+   printf("close\n");
    /* ------------------------------------------------------   *
     * closing and unlinking the opening semaphore by Felicia   *
     * ------------------------------------------------------   */

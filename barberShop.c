@@ -13,7 +13,14 @@ sem_t *SEM_sleepingBarber;
 sem_t *SEM_customers;
 sem_t *SEM_order;
 
+typedef struct chair{
+   int cid;
+   pthread_t tid;
+}CHAIR;
+
 int freeChairCounts= CHAIR_COUNT;
+int head = 0;
+CHAIR waitingQueue[CHAIR_COUNT];
 
 void  *
 barber(void *Bid){
@@ -34,15 +41,19 @@ barber(void *Bid){
          break;
       }
       sem_wait(SEM_chair);
-      // TODO deQ to get the customer's Info
-
+      // deQ to get the customer's Info
+      if (freeChairCounts == CHAIR_COUNT){
+         printf("Error: queue is empty\n");
+      }
+      int   cid = waitingQueue[head].cid;
+      head = (head + 1) % CHAIR_COUNT;
       // release one chair in waiting room
       freeChairCounts += 1;
-      printf("barber%d is serving customer\n", bid);
+      printf("barber%d is serving customer%d\n", bid, cid);
       sem_post(SEM_chair);
       // barber is cutting the customer's hair
       sleep(4);
-      printf("customer leaves due to barber%d has finished serving customer.\n", bid);
+      printf("customer%d leaves due to barber%d has finished serving customer%d.\n", cid, bid, cid);
       // telling the customers who is waiting on the bench that barber's idling now.
       sem_post(SEM_sleepingBarber);
    }
@@ -60,6 +71,9 @@ customer(void  *Cid){
       sem_post(SEM_order);
    } else {
       // TODO insert into waitinig queue
+      int insertIndex = (head + (CHAIR_COUNT - freeChairCounts)) % CHAIR_COUNT;
+      waitingQueue[insertIndex].cid = cid;
+      waitingQueue[insertIndex].tid = pthread_self();
 
       freeChairCounts -= 1;
       printf("customer%d waiting in the bench\n", cid);
@@ -142,7 +156,7 @@ main(){
       sem_wait(SEM_arrive);
       int ret = sem_trywait(SEM_closeAll);
       if(ret == 0){
-         // TODO pthread_cancel the customers wait in the waiting room
+         // pthread_cancel the customers wait in the waiting room
 
          break;
       }

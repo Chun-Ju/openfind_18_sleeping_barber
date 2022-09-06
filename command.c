@@ -13,7 +13,7 @@ main(){
    _Bool open = TRUE;
    int result = SUCCESS;
 
-   // opening the IPC semaphore by Felicia
+   // opening the IPC semaphore
    sem_t *SEM_arrive = sem_open("SEM_arrive", O_CREAT, 0664, 0);
    if (!SEM_arrive) {
       perror("Error(sem_open):");
@@ -26,29 +26,49 @@ main(){
       result = ERR_SEM_OPEN;
       goto error_handling_c0;
    }
+   printf("------------------------------------------\n");
+   printf("PLEASE ENTER a OR c THEN ENTER ONLY\n");
+   printf("command 'a': means customers arrive\n");
+   printf("command 'c': means time to close the store\n");
+   printf("------------------------------------------\n");
+
    /* ------------------------------------------------   *
     * receiving the comamnd inputed by user by Felicia   *
     * ------------------------------------------------   */
    while (open) {
-      char  command[COMMAND_LEN];
       printf("Command:");
-      scanf(" %s", command);
-      if (strlen(command) != 1) { //command too long
-         printf("Error(command format): it's too long\n");
-         result = ERR_ARGS;
+
+      char  *line = NULL;
+      size_t len = 0;
+      ssize_t readSize;
+      readSize = getline(&line, &len, stdin);
+
+      if (readSize == -1){
+
+         perror("Error(getline):");
+         result = ERR_GETLINE;
          goto error_handling_c1;
-      } else if (command[0] == 'a') { //customers arrive
+
+      } else if ((readSize - 1) != 1) { //command length not correct
+
+         if (readSize == 1) { // only '\n'
+            printf("COMMAND CANNOT BE EMPTY!!\n");
+         } else { // must too long
+            printf("COMMAND IS TOOOO LONG!!\n");
+         }
+
+      } else if (line[0] == 'a') { //customers arrive
          sem_post(SEM_arrive);
-      } else if (command[0] == 'c'){ //signal to close the store and notify barbers to sleep
+      } else if (line[0] == 'c'){ //signal to close the store and notify barbers to sleep
+
          for(int  i = 0; i < 1 + BARBER_COUNT; i++){//1 for close store, others for barber
             sem_post(SEM_closeAll);
          }
          sem_post(SEM_arrive);
          break;
-      } else {
-         printf("Error(command format): error cpmmand, please enter a or c and enter only\n");
-         result = ERR_ARGS;
-         goto error_handling_c1;
+
+      } else { // error command
+         printf("ERROR COMMAND, PLEASE ENTER a OR c THEN ENTER\n");
       }
    }
 

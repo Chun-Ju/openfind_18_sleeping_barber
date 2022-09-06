@@ -15,5 +15,6 @@
 #define  ERR_BASE          0
 #define  ERR_SEM_OPEN      (ERR_BASE-1)
 #define  ERR_ARGS          (ERR_BASE-2)
+#define  ERR_PTHD_CREATE   (ERR_BASE-3)
 
 #endif

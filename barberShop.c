@@ -146,7 +146,12 @@ main(){
    for(int i = 0; i < BARBER_COUNT; i++){
       sem_wait(SEM_order);
       ++barberId;
-      pthread_create(&barberThread[i], NULL, barber, &barberId);
+      int   ret = pthread_create(&barberThread[i], NULL, barber, &barberId);
+      if (ret != 0){
+         perror("Error(pthread_create)\n");
+         result = ERR_PTHD_CREATE;
+         goto error_handling_b5;
+      }
    }
 
    /* ---------------------------------------   *
@@ -192,7 +197,12 @@ main(){
       ++customerId;
       printf("customer%d arrives the store\n", customerId);
       pthread_t customerThread;
-      pthread_create(&customerThread, NULL, customer, &customerId);
+      ret = pthread_create(&customerThread, NULL, customer, &customerId);
+      if (ret != 0){
+         perror("Error(pthread_create)\n");
+         result = ERR_PTHD_CREATE;
+         goto error_handling_b5;
+      }
    }
 
    /* ----------------------------------------------------------------- *
@@ -208,6 +218,7 @@ main(){
    /* ------------------------------------------------------   *
     * closing and unlinking the opening semaphore by Felicia   *
     * ------------------------------------------------------   */
+error_handling_b5:
    sem_close(SEM_order);
    sem_unlink("SEM_order");
 error_handling_b4:

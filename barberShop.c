@@ -19,8 +19,8 @@ typedef struct chair{
    pthread_t tid;
 }CHAIR;
 
-int freeChairCounts= CHAIR_COUNT;
-int head = 0;
+int   freeChairCounts = CHAIR_COUNT;
+int   head = 0;
 CHAIR waitingQueue[CHAIR_COUNT];
 
 void  *
@@ -54,7 +54,7 @@ barber(void *Bid){
       sem_post(SEM_chair);
       // barber is cutting the customer's hair
       sleep(4);
-      printf("customer%d leaves due to barber%d has finished serving customer%d.\n", cid, bid, cid);
+      printf("barber%d has finished serving customer%d, so customer%d leaves.\n", bid, cid, cid);
       // telling the customers who is waiting on the bench that barber's idling now.
       sem_post(SEM_sleepingBarber);
    }

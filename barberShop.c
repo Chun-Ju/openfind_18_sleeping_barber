@@ -194,8 +194,7 @@ main(){
          break;
       }
       sem_wait(SEM_order);
-      ++customerId;
-      printf("customer%d arrives the store\n", customerId);
+      printf("customer%d arrives the store\n", ++customerId);
       pthread_t customerThread;
       ret = pthread_create(&customerThread, NULL, customer, &customerId);
       if (ret != 0){

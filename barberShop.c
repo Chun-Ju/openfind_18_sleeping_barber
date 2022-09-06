@@ -169,7 +169,7 @@ main(){
       goto error_handling_b1;
    }
 
-   SEM_sleepingBarber = sem_open("SEM_sleepingBarber", O_CREAT, 0664, 1);
+   SEM_sleepingBarber = sem_open("SEM_sleepingBarber", O_CREAT, 0664, 0);
    if (!SEM_sleepingBarber) {
       perror("Error(sem_open):");
       result = ERR_SEM_OPEN;

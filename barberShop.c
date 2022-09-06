@@ -31,20 +31,36 @@ barber(void *Bid){
     * ------------------------------------   */
    int   bid = *(int*) Bid;
    printf("barber%d opens the door\n", bid);
-   sem_post(SEM_order);
+   int   ret = sem_post(SEM_order);
+   if (ret == -1) {
+      pthread_exit(NULL);
+   }
 
    /* ----------------------------------------------------------------------------------- *
     * barber waits arrivers come to serve the sustomers or close its own store by Felicia *
     * ----------------------------------------------------------------------------------- */
    while(1){
-      sem_wait(SEM_customers);
-      int   ret = sem_trywait(SEM_closeAll);
-      if (ret == 0) {
+      ret = sem_wait(SEM_customers);
+      if (ret == -1) {
+         pthread_exit(NULL);
+      }
+
+      ret = sem_trywait(SEM_closeAll);
+      if (ret == 0) { // close store
          break;
       } else if (ret == -1 && errno != EAGAIN) {
          pthread_exit(NULL);
       }
-      sem_wait(SEM_chair);
+
+      ret = sem_wait(SEM_chair);
+      if (ret == -1) { // fail to get customers info so didn't serve
+         ret = sem_post(SEM_customers);
+         if (ret == -1) { // it may lose one customers
+            pthread_exit(NULL);
+         }
+         pthread_exit(NULL);
+      }
+
       // deQ to get the customer's Info
       if (freeChairCounts == CHAIR_COUNT){
          printf("Error: queue is empty\n");
@@ -54,12 +70,18 @@ barber(void *Bid){
       // release one chair in waiting room
       freeChairCounts += 1;
       printf("barber%d is serving customer%d\n", bid, cid);
-      sem_post(SEM_chair);
+      ret = sem_post(SEM_chair);
+      if (ret == -1) {
+         pthread_exit(NULL);
+      }
       // barber is cutting the customer's hair
       sleep(4);
       printf("barber%d has finished serving customer%d, so customer%d leaves.\n", bid, cid, cid);
       // telling the customers who is waiting on the bench that barber's idling now.
-      sem_post(SEM_sleepingBarber);
+      ret = sem_post(SEM_sleepingBarber);
+      if (ret == -1) {
+         pthread_exit(NULL);
+      }
    }
    printf("barber%d sleeps\n", bid);
    pthread_exit(NULL);
@@ -67,12 +89,24 @@ barber(void *Bid){
 
 void *
 customer(void  *Cid){
-   int cid = *(int*) Cid;
-   sem_wait(SEM_chair);
+   int   cid = *(int*) Cid;
+
+   int   ret = sem_wait(SEM_chair);
+   if (ret == -1) {
+      pthread_exit(NULL);
+   }
+
    if (freeChairCounts <= 0) {// no seats
       printf("customer%d leaves due to no seats in waiting room\n", cid);
-      sem_post(SEM_chair);
-      sem_post(SEM_order);
+      ret = sem_post(SEM_chair);
+      if (ret == -1) {
+         pthread_exit(NULL);
+      }
+
+      ret = sem_post(SEM_order);
+      if (ret == -1) {
+         pthread_exit(NULL);
+      }
    } else {
       // TODO insert into waitinig queue
       int insertIndex = (head + (CHAIR_COUNT - freeChairCounts)) % CHAIR_COUNT;
@@ -81,10 +115,26 @@ customer(void  *Cid){
 
       freeChairCounts -= 1;
       printf("customer%d waiting in the bench\n", cid);
-      sem_post(SEM_customers);
-      sem_post(SEM_chair);
-      sem_post(SEM_order);
-      sem_wait(SEM_sleepingBarber);
+
+      ret = sem_post(SEM_customers);
+      if (ret == -1) {
+         pthread_exit(NULL);
+      }
+
+      ret = sem_post(SEM_chair);
+      if (ret == -1) {
+         pthread_exit(NULL);
+      }
+
+      ret = sem_post(SEM_order);
+      if (ret == -1) {
+         pthread_exit(NULL);
+      }
+
+      ret = sem_wait(SEM_sleepingBarber);
+      if (ret == -1) {
+         pthread_exit(NULL);
+      }
    }
 
    pthread_exit(NULL);
@@ -147,9 +197,14 @@ main(){
    pthread_t   barberThread[BARBER_COUNT];
    // <BARBER_COUNT> barber start working
    for(int i = 0; i < BARBER_COUNT; i++){
-      sem_wait(SEM_order);
+      int   ret = sem_wait(SEM_order);
+      if (ret == -1){
+         perror("Error(sem_wait)\n");
+         result = ERR_SEM_WAIT;
+         goto error_handling_b5;
+      }
       ++barberId;
-      int   ret = pthread_create(&barberThread[i], NULL, barber, &barberId);
+      ret = pthread_create(&barberThread[i], NULL, barber, &barberId);
       if (ret != 0){
          perror("Error(pthread_create)\n");
          result = ERR_PTHD_CREATE;
@@ -162,12 +217,24 @@ main(){
     * ---------------------------------------   */
    int         customerId = 0;
    while(1){
-      sem_wait(SEM_arrive);
-      int   ret = sem_trywait(SEM_closeAll);
+      int   ret = sem_wait(SEM_arrive);
+      if (ret == -1) {
+         perror("Error(sem_wait)\n");
+         result = ERR_SEM_WAIT;
+         goto error_handling_b5;
+      }
+      ret = sem_trywait(SEM_closeAll);
       if (ret == -1 && errno != EAGAIN) {
-         pthread_exit(NULL);
+         perror("Error(sem_trywait)\n");
+         result = ERR_SEM_WAIT;
+         goto error_handling_b5;
       } else if(ret == 0){
-         sem_wait(SEM_chair);
+         ret = sem_wait(SEM_chair);
+         if (ret == -1){
+            perror("Error(sem_wait)\n");
+            result = ERR_SEM_WAIT;
+            goto error_handling_b5;
+         }
 
          printf("------------------------------\n");
          printf("|  %s  |\n","ready to close the store");
@@ -195,10 +262,20 @@ main(){
          }else{
             printf("NO CUSTOMER IS WAITING IN THE BENCH.\n");
          }
-         sem_post(SEM_chair);
+         ret = sem_post(SEM_chair);
+         if (ret == -1){
+            perror("Error(sem_post)\n");
+            result = ERR_SEM_POST;
+            goto error_handling_b5;
+         }
          break;
       }
-      sem_wait(SEM_order);
+      ret = sem_wait(SEM_order);
+      if (ret == -1){
+         perror("Error(sem_wait)\n");
+         result = ERR_SEM_WAIT;
+         goto error_handling_b5;
+      }
       printf("customer%d arrives the store\n", ++customerId);
       pthread_t customerThread;
       ret = pthread_create(&customerThread, NULL, customer, &customerId);
@@ -213,7 +290,12 @@ main(){
     * dispatch the people to tell barber it is time to sleep by Felicia *
     * ----------------------------------------------------------------- */
    for(int i = 0; i < BARBER_COUNT; i++){
-      sem_post(SEM_customers);
+      int   ret = sem_post(SEM_customers);
+      if (ret == -1){
+         perror("Error(sem_post)\n");
+         result = ERR_SEM_POST;
+         goto error_handling_b5;
+      }
    }
    for(int i = 0; i < BARBER_COUNT; i++){
       pthread_join(barberThread[i], NULL);

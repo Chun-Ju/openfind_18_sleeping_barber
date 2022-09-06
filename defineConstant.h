@@ -14,5 +14,7 @@
 #define  ERR_SEM_OPEN      (ERR_BASE-1)
 #define  ERR_GETLINE       (ERR_BASE-2)
 #define  ERR_PTHD_CREATE   (ERR_BASE-3)
+#define  ERR_SEM_WAIT      (ERR_BASE-4)
+#define  ERR_SEM_POST      (ERR_BASE-5)
 
 #endif

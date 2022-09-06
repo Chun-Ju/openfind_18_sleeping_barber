@@ -58,13 +58,28 @@ main(){
          }
 
       } else if (line[0] == 'a') { //customers arrive
-         sem_post(SEM_arrive);
+         int   ret = sem_post(SEM_arrive);
+         if (ret == -1) {
+            result = ERR_SEM_POST;
+            perror("Error(sem_post):");
+            goto error_handling_c1;
+         }
       } else if (line[0] == 'c'){ //signal to close the store and notify barbers to sleep
 
          for(int  i = 0; i < 1 + BARBER_COUNT; i++){//1 for close store, others for barber
-            sem_post(SEM_closeAll);
+            int   ret = sem_post(SEM_closeAll);
+            if (ret == -1) {
+               result = ERR_SEM_POST;
+               perror("Error(sem_post):");
+               goto error_handling_c1;
+            }
          }
-         sem_post(SEM_arrive);
+         int   ret = sem_post(SEM_arrive);
+         if (ret == -1) {
+            result = ERR_SEM_POST;
+            perror("Error(sem_post):");
+            goto error_handling_c1;
+         }
          break;
 
       } else { // error command

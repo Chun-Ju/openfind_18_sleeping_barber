@@ -25,7 +25,7 @@ int   head = 0;
 CHAIR waitingQueue[CHAIR_COUNT];
 
 void  *
-barber(void *Bid){
+THD_barber(void *Bid){
    /* ------------------------------------   *
     * barber opens its own door by Felicia   *
     * ------------------------------------   */
@@ -88,7 +88,7 @@ barber(void *Bid){
 }
 
 void *
-customer(void  *Cid){
+THD_customer(void  *Cid){
    int   cid = *(int*) Cid;
 
    int   ret = sem_wait(SEM_chair);
@@ -204,7 +204,7 @@ main(){
          goto error_handling_b5;
       }
       ++barberId;
-      ret = pthread_create(&barberThread[i], NULL, barber, &barberId);
+      ret = pthread_create(&barberThread[i], NULL, THD_barber, &barberId);
       if (ret != 0){
          perror("Error(pthread_create)\n");
          result = ERR_PTHD_CREATE;
@@ -278,7 +278,7 @@ main(){
       }
       printf("customer%d arrives the store\n", ++customerId);
       pthread_t customerThread;
-      ret = pthread_create(&customerThread, NULL, customer, &customerId);
+      ret = pthread_create(&customerThread, NULL, THD_customer, &customerId);
       if (ret != 0){
          perror("Error(pthread_create)\n");
          result = ERR_PTHD_CREATE;

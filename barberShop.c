@@ -5,6 +5,7 @@
 #include <semaphore.h>
 #include <fcntl.h>
 #include <pthread.h>
+#include <sys/errno.h>
 
 #include "defineConstant.h"
 
@@ -38,8 +39,10 @@ barber(void *Bid){
    while(1){
       sem_wait(SEM_customers);
       int   ret = sem_trywait(SEM_closeAll);
-      if(ret == 0){
+      if (ret == 0) {
          break;
+      } else if (ret == -1 && errno != EAGAIN) {
+         pthread_exit(NULL);
       }
       sem_wait(SEM_chair);
       // deQ to get the customer's Info
@@ -161,7 +164,9 @@ main(){
    while(1){
       sem_wait(SEM_arrive);
       int   ret = sem_trywait(SEM_closeAll);
-      if(ret == 0){
+      if (ret == -1 && errno != EAGAIN) {
+         pthread_exit(NULL);
+      } else if(ret == 0){
          sem_wait(SEM_chair);
 
          printf("------------------------------\n");

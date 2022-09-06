@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <semaphore.h>
 #include <fcntl.h>
@@ -148,16 +149,43 @@ main(){
       pthread_create(&barberThread[i], NULL, barber, &barberId);
    }
 
-   /* -------------------------------------  *
-    * create the barber (Thread) by Felicia  *
-    * -------------------------------------  */
+   /* ---------------------------------------   *
+    * create the customer (Thread) by Felicia   *
+    * ---------------------------------------   */
    int         customerId = 0;
    while(1){
       sem_wait(SEM_arrive);
-      int ret = sem_trywait(SEM_closeAll);
+      int   ret = sem_trywait(SEM_closeAll);
       if(ret == 0){
-         // pthread_cancel the customers wait in the waiting room
+         sem_wait(SEM_chair);
 
+         printf("------------------------------\n");
+         printf("|  %s  |\n","ready to close the store");
+         printf("------------------------------\n");
+
+         char  benchStr[BENCH_STR_LEN] = "";
+         // pthread_cancel the customers wait in the waiting room
+         for(int  i = 0; i < CHAIR_COUNT - freeChairCounts; i++){
+            if (freeChairCounts == CHAIR_COUNT){
+               printf("Error: queue is empty\n");
+            }
+            pthread_t   tid = waitingQueue[head].tid;
+            int         cid = waitingQueue[head].cid;
+            char        cidStr[INT_MAX_DIG + 2]; // 1 for ',', 1 for '\0'
+            int         cidStrLen = snprintf(cidStr, INT_MAX_DIG + 1, "%d", cid);
+            cidStr[cidStrLen++] = ',';
+            cidStr[cidStrLen++] = '\0';
+            strncat(benchStr, cidStr, cidStrLen);
+            head = (head + 1) % CHAIR_COUNT;
+            pthread_cancel(tid);
+         }
+         if(strlen(benchStr) != 0){
+            benchStr[strlen(benchStr) - 1] = '\0';//remove redundant ','
+            printf("dismiss customer %s in the bench.\n", benchStr);
+         }else{
+            printf("NO CUSTOMER IS WAITING IN THE BENCH.\n");
+         }
+         sem_post(SEM_chair);
          break;
       }
       sem_wait(SEM_order);

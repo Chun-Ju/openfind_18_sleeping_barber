@@ -160,6 +160,18 @@ main(){
       result = ERR_SEM_OPEN;
       goto error_handling_b0;
    }
+   int closeAllAmount;
+   sem_getvalue(SEM_closeAll, &closeAllAmount);
+   if (closeAllAmount > 0 && closeAllAmount < 1 + BARBER_COUNT) {// garbage sem of last time unexpected leave
+      for(int i = 0; i < closeAllAmount; i++){
+         int   ret = sem_wait(SEM_closeAll);
+         if (ret == -1){
+            perror("Error(sem_wait)\n");
+            result = ERR_SEM_WAIT;
+            goto error_handling_b1;
+         }
+      }
+   }
 
    // global semaphore
    SEM_chair = sem_open("SEM_chair", O_CREAT, 0664, 1);

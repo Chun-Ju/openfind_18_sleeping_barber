@@ -168,6 +168,7 @@ main(){
       result = ERR_SEM_OPEN;
       goto error_handling_b1;
    }
+   sem_unlink("SEM_chair");
 
    SEM_sleepingBarber = sem_open("SEM_sleepingBarber", O_CREAT, 0664, 0);
    if (!SEM_sleepingBarber) {
@@ -175,6 +176,7 @@ main(){
       result = ERR_SEM_OPEN;
       goto error_handling_b2;
    }
+   sem_unlink("SEM_sleepingBarber");
 
    SEM_customers = sem_open("SEM_customers", O_CREAT, 0664, 0);
    if (!SEM_customers) {
@@ -182,6 +184,7 @@ main(){
       result = ERR_SEM_OPEN;
       goto error_handling_b3;
    }
+   sem_unlink("SEM_customers");
 
    SEM_order = sem_open("SEM_order", O_CREAT, 0664, 1);
    if (!SEM_order) {
@@ -189,6 +192,7 @@ main(){
       result = ERR_SEM_OPEN;
       goto error_handling_b4;
    }
+   sem_unlink("SEM_order");
 
    /* -------------------------------------  *
     * create the barber (Thread) by Felicia  *
@@ -306,16 +310,12 @@ main(){
     * ------------------------------------------------------   */
 error_handling_b5:
    sem_close(SEM_order);
-   sem_unlink("SEM_order");
 error_handling_b4:
    sem_close(SEM_customers);
-   sem_unlink("SEM_customers");
 error_handling_b3:
    sem_close(SEM_sleepingBarber);
-   sem_unlink("SEM_sleepingBarber");
 error_handling_b2:
    sem_close(SEM_chair);
-   sem_unlink("SEM_chair");
 error_handling_b1:
    sem_close(SEM_closeAll);
    sem_unlink("SEM_closeAll");
